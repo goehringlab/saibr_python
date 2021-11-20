@@ -8,9 +8,30 @@ from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 from .funcs import load_image, offset_coordinates, make_mask
 
+"""
+To do: ability to define ROI
+
+"""
+
 
 class SaibrCalibrate:
-    def __init__(self, gfp=None, af=None, rfp=None, roi=None, sigma=2, intercept0=False, expand=5, method='OLS'):
+    def __init__(self, gfp=None, af=None, rfp=None, roi=None, sigma=2, intercept0=False, method='OLS'):
+
+        """
+        Class for performing SAIBR calibration
+
+        Initiate class, either by feeding in images or by using the load_data function
+        Then perform calibration with run function
+        Assess quality of regression with plot_correlation, plot_prediction and plot_residuals functions
+
+        :param gfp: list of gfp channel images
+        :param af: list of af channel images
+        :param rfp: list of rfp channel images
+        :param roi: list of rois
+        :param sigma: gaussian blur radius
+        :param intercept0: if True, forces regression through origin
+        :param method: 'OLS' for ordinary least squares, 'ODR' for orthogonal disatance regression
+        """
 
         # Global parameters
         self.sigma = sigma
@@ -70,12 +91,12 @@ class SaibrCalibrate:
 
         # Perform regression
         if self.rfp is None:
-            self.params, self.af_vals, self.gfp_vals = af_correlation(np.array(self.gfp_filtered),
-                                                                      np.array(self.af_filtered), self.mask,
-                                                                      intercept0=self.intercept0,
-                                                                      method=self.method)
+            self.params, self.af_vals, self.gfp_vals = _af_correlation(np.array(self.gfp_filtered),
+                                                                       np.array(self.af_filtered), self.mask,
+                                                                       intercept0=self.intercept0,
+                                                                       method=self.method)
         else:
-            self.params, self.af_vals, self.rfp_vals, self.gfp_vals = af_correlation_3channel(
+            self.params, self.af_vals, self.rfp_vals, self.gfp_vals = _af_correlation_3channel(
                 np.array(self.gfp_filtered), np.array(self.af_filtered), np.array(self.rfp_filtered), self.mask,
                 intercept0=self.intercept0, method=self.method)
 
@@ -257,7 +278,7 @@ class SaibrCalibrate:
         return fig, ax
 
 
-def af_correlation(img1, img2, mask=None, intercept0=False, method='OLS'):
+def _af_correlation(img1, img2, mask=None, intercept0=False, method='OLS'):
     """
     Calculates pixel-by-pixel correlation between two channels
     Takes 3d image stacks shape [n, 512, 512]
@@ -321,7 +342,7 @@ def af_correlation(img1, img2, mask=None, intercept0=False, method='OLS'):
     return params, xdata, ydata
 
 
-def af_correlation_3channel(img1, img2, img3, mask=None, intercept0=False, method='OLS'):
+def _af_correlation_3channel(img1, img2, img3, mask=None, intercept0=False, method='OLS'):
     """
     AF correlation taking into account red channel
 
@@ -390,28 +411,35 @@ def af_correlation_3channel(img1, img2, img3, mask=None, intercept0=False, metho
     return params, xdata, ydata, zdata
 
 
-def SaibrCorrect(ch1, ch2, m, c):
+def SaibrCorrect(gfp, af, m, c):
     """
-    Subtract ch2 from ch1
-    ch2 is first adjusted to m * ch2 + c
+    Subtract af from gfp
+    af is first adjusted to m * af + c
 
-    :param ch1:
-    :param ch2:
-    :param m:
-    :param c:
-    :return:
+    :param gfp: gfp channel
+    :param af: af channel
+    :param m: calibration parameter
+    :param c: calibration parameter
+    :return: corrected image
     """
 
-    af = m * ch2 + c
-    signal = ch1 - af
+    af_inferred = m * af + c
+    signal = gfp - af_inferred
     return signal
 
 
-def SaibrCorrect3channel(ch1, ch2, ch3, m1, m2, c):
+def SaibrCorrect3channel(gfp, af, rfp, m1, m2, c):
     """
 
+    :param gfp: gfp channel
+    :param af: af channel
+    :param rfp: rfp channel
+    :param m1: calibration parameter
+    :param m2: calibration parameter
+    :param c: calibration parameter
+    :return: corrected image
     """
 
-    af = m1 * ch2 + m2 * ch3 + c
-    signal = ch1 - af
+    af_inferred = m1 * af + m2 * rfp + c
+    signal = gfp - af_inferred
     return signal

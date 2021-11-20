@@ -48,3 +48,4 @@ def offset_coordinates(roi, offsets):
 
 def make_mask(shape, roi):
     return cv2.fillPoly(np.zeros(shape) * np.nan, [np.int32(roi)], 1)
+
