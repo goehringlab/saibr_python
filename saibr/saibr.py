@@ -8,11 +8,6 @@ from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 from .funcs import load_image, offset_coordinates, make_mask
 
-"""
-To do: ability to define ROI
-
-"""
-
 
 class SaibrCalibrate:
     def __init__(self, gfp=None, af=None, rfp=None, roi=None, sigma=2, intercept0=False, method='OLS'):
