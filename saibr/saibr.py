@@ -6,26 +6,42 @@ import glob
 import scipy.odr as odr
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
-from .funcs import load_image, offset_coordinates, make_mask
+from .funcs import load_image, make_mask
+from .roi import offset_coordinates
+from typing import Tuple, Optional
 
 
 class SaibrCalibrate:
-    def __init__(self, gfp=None, af=None, rfp=None, roi=None, sigma=2, intercept0=False, method='OLS'):
+    def __init__(self,
+                 paths: list,
+                 gfp_regex: str = '*488 SP 535-50*',
+                 af_regex: str = '*488 SP 630-75*',
+                 rfp_regex: Optional[str] = None,
+                 roi_regex: str = '*ROI*',
+                 sigma: float = 2.0,
+                 intercept0: bool = False,
+                 expand: float = 5.0,
+                 method: str = 'OLS'):
 
         """
-        Class for performing SAIBR calibration
 
-        Initiate class, either by feeding in images or by using the load_data function
-        Then perform calibration with run function
-        Assess quality of regression with plot_correlation, plot_prediction and plot_residuals functions
+        Convenient class for performing SAIBR calibration
+        Imports data according to paths and regular expressions, blurs images, and performs the regression
 
-        :param gfp: list of gfp channel images
-        :param af: list of af channel images
-        :param rfp: list of rfp channel images
-        :param roi: list of rois
-        :param sigma: gaussian blur radius
-        :param intercept0: if True, forces regression through origin
-        :param method: 'OLS' for ordinary least squares, 'ODR' for orthogonal disatance regression
+        Args:
+            paths: list of paths containing n2 images
+            gfp_regex: regular expression found in gfp channel image files
+            af_regex: regular expression found in af channel image files
+            rfp_regex: regular expression found in rfp channel files (optional)
+            roi_regex: regular expression found in ROI files
+            sigma: gaussian blur to apply to images prior to regression
+            intercept0: if True, force intercept of regression to go through zero. Not recommended
+            expand: expand ROIs by this many pixels (useful to include a portion of background)
+            method: fitting method, either 'OLS' for ordinary least squares or 'ODR' for orthogonal distance regression
+
+        To run regression, initialise class and run()
+        SAIBR parameters will then be found at self.params
+
         """
 
         # Global parameters
@@ -33,44 +49,20 @@ class SaibrCalibrate:
         self.intercept0 = intercept0
         self.method = method
 
-        # Images
-        self.gfp = gfp
-        self.af = af
-        self.rfp = rfp
-        self.gfp_filtered = None
-        self.af_filtered = None
-        self.rfp_filtered = rfp
-
-        # ROIs
-        self.roi = roi
-        self.mask = None
-
-        # Results
-        self.params = None
-        self.gfp_vals = None
-        self.af_vals = None
-        self.rfp_vals = None
-        self.r2 = None
-
-    def load_data(self, paths, gfp_regex='*488 SP 535-50*', af_regex='*488 SP 630-75*', rfp_regex=None,
-                  roi_regex='*ROI*', expand_roi=0):
-
         # Import images
-        self.gfp = [load_image(sorted(glob.glob('%s/%s' % (p, gfp_regex)))[0]) for p in paths]
-        self.af = [load_image(sorted(glob.glob('%s/%s' % (p, af_regex)))[0]) for p in paths]
+        self.gfp = [load_image(sorted(glob.glob(f'{p}/{gfp_regex}'))[0]) for p in paths]
+        self.af = [load_image(sorted(glob.glob(f'{p}/{af_regex}'))[0]) for p in paths]
         if rfp_regex is not None:
-            self.rfp = [load_image(sorted(glob.glob('%s/%s' % (p, rfp_regex)))[0]) for p in paths]
+            self.rfp = [load_image(sorted(glob.glob(f'{p}/{rfp_regex}'))[0]) for p in paths]
         else:
             self.rfp = None
 
         # Import rois
         if roi_regex is not None:
-            self.roi = [offset_coordinates(np.loadtxt(sorted(glob.glob('%s/%s' % (p, roi_regex)))[0]), expand_roi) for p
-                        in paths]
+            self.roi = [offset_coordinates(np.loadtxt(sorted(glob.glob(f'{p}/{roi_regex}'))[0]), expand) for p in
+                        paths]
         else:
             self.roi = None
-
-    def run(self):
 
         # Create masks
         if self.roi is not None:
@@ -84,14 +76,23 @@ class SaibrCalibrate:
         if self.rfp is not None:
             self.rfp_filtered = [gaussian_filter(c, sigma=self.sigma) for c in self.rfp]
 
+        # Results
+        self.params = None
+        self.gfp_vals = None
+        self.af_vals = None
+        self.rfp_vals = None
+        self.r2 = None
+
+    def run(self):
+
         # Perform regression
         if self.rfp is None:
-            self.params, self.af_vals, self.gfp_vals = _af_correlation(np.array(self.gfp_filtered),
-                                                                       np.array(self.af_filtered), self.mask,
-                                                                       intercept0=self.intercept0,
-                                                                       method=self.method)
+            self.params, self.af_vals, self.gfp_vals = af_correlation(np.array(self.gfp_filtered),
+                                                                      np.array(self.af_filtered), self.mask,
+                                                                      intercept0=self.intercept0,
+                                                                      method=self.method)
         else:
-            self.params, self.af_vals, self.rfp_vals, self.gfp_vals = _af_correlation_3channel(
+            self.params, self.af_vals, self.rfp_vals, self.gfp_vals = af_correlation_3channel(
                 np.array(self.gfp_filtered), np.array(self.af_filtered), np.array(self.rfp_filtered), self.mask,
                 intercept0=self.intercept0, method=self.method)
 
@@ -104,7 +105,7 @@ class SaibrCalibrate:
         # Calculate R squared
         self.r2 = r2_score(self.gfp_vals, ypred)
 
-    def plot_correlation(self, s=None):
+    def plot_correlation(self, s: Optional[float] = None):
         if self.rfp is None:
             s = 0.001 if s is None else s
             fig, ax = self._plot_correlation_2channel(s=s)
@@ -113,7 +114,7 @@ class SaibrCalibrate:
             fig, ax = self._plot_correlation_3channel(s=s)
         return fig, ax
 
-    def _plot_correlation_2channel(self, s=0.001):
+    def _plot_correlation_2channel(self, s: float = 0.001):
         fig, ax = plt.subplots()
 
         # Scatter
@@ -136,7 +137,7 @@ class SaibrCalibrate:
         ax.set_ylabel('GFP')
         return fig, ax
 
-    def _plot_correlation_3channel(self, s=1):
+    def _plot_correlation_3channel(self, s: float = 1.0):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
@@ -166,14 +167,14 @@ class SaibrCalibrate:
         ax.set_zlabel('GFP')
         return fig, ax
 
-    def plot_prediction(self, s=0.001):
+    def plot_prediction(self, s: float = 0.001):
         if self.rfp is None:
             fig, ax = self._plot_prediction_2channel(s=s)
         else:
             fig, ax = self._plot_prediction_3channel(s=s)
         return fig, ax
 
-    def _plot_prediction_2channel(self, s=0.001):
+    def _plot_prediction_2channel(self, s: float = 0.001):
         fig, ax = plt.subplots()
 
         # Scatter
@@ -194,7 +195,7 @@ class SaibrCalibrate:
         ax.set_ylabel('GFP')
         return fig, ax
 
-    def _plot_prediction_3channel(self, s=0.001):
+    def _plot_prediction_3channel(self, s: float = 0.001):
         fig, ax = plt.subplots()
 
         # Scatter plot
@@ -217,14 +218,14 @@ class SaibrCalibrate:
         ax.set_ylabel('GFP')
         return fig, ax
 
-    def plot_residuals(self, s=0.001):
+    def plot_residuals(self, s: float = 0.001):
         if self.rfp is None:
             fig, ax = self._plot_residuals_2channel(s=s)
         else:
             fig, ax = self._plot_residuals_3channel(s=s)
         return fig, ax
 
-    def _plot_residuals_2channel(self, s=0.001):
+    def _plot_residuals_2channel(self, s: float = 0.001):
         fig, ax = plt.subplots()
 
         # Scatter
@@ -247,7 +248,7 @@ class SaibrCalibrate:
         ax.set_xlim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
         return fig, ax
 
-    def _plot_residuals_3channel(self, s=0.001):
+    def _plot_residuals_3channel(self, s: float = 0.001):
         fig, ax = plt.subplots()
 
         # Scatter plot
@@ -273,15 +274,24 @@ class SaibrCalibrate:
         return fig, ax
 
 
-def _af_correlation(img1, img2, mask=None, intercept0=False, method='OLS'):
+def af_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = None, intercept0: bool = False,
+                   method: str = 'OLS') -> Tuple[list, np.ndarray, np.ndarray]:
     """
     Calculates pixel-by-pixel correlation between two channels
     Takes 3d image stacks shape [n, 512, 512]
 
-    :param img1: gfp channel
-    :param img2: af channel
-    :param mask: from make_mask function
-    :return:
+    Args:
+        img1: gfp channel
+        img2: af channel
+        mask: mask specifying region of images to use for regression, from make_mask function
+        intercept0: if True, force the intercept to go through zero. Not recommended
+        method: fitting method, either 'OLS' for ordinary least squares or 'ODR' for orthogonal distance regression
+
+    Returns:
+        parameters from regression [m, c]
+        numpy array of all af channel pixels used for regression
+        numpy array of all gfp channel pixels used for regression
+
     """
 
     # Convert to arrays
@@ -337,15 +347,27 @@ def _af_correlation(img1, img2, mask=None, intercept0=False, method='OLS'):
     return params, xdata, ydata
 
 
-def _af_correlation_3channel(img1, img2, img3, mask=None, intercept0=False, method='OLS'):
+def af_correlation_3channel(img1: np.ndarray, img2: np.ndarray, img3: np.ndarray, mask: Optional[np.ndarray] = None,
+                            intercept0: bool = False, method: str = 'OLS') -> Tuple[
+    list, np.ndarray, np.ndarray, np.ndarray]:
     """
-    AF correlation taking into account red channel
+    Calculates pixel-by-pixel correlation between three channels
+    Takes 3d image stacks shape [n, 512, 512]
 
-    :param img1: GFP channel
-    :param img2: AF channel
-    :param img3: RFP channel
-    :param mask:
-    :return:
+    Args:
+        img1: gfp channel
+        img2: af channel
+        img3: third channel
+        mask: mask specifying region of images to use for regression, from make_mask function
+        intercept0: if True, force the intercept to go through zero. Not recommended
+        method: fitting method, either 'OLS' for ordinary least squares or 'ODR' for orthogonal distance regression
+
+    Returns:
+        parameters from regression [m, c]
+        numpy array of all af channel pixels used for regression
+        numpy array of all third channel pixels used for regression
+        numpy array of all gfp channel pixels used for regression
+
     """
 
     # Convert to arrays
@@ -406,35 +428,46 @@ def _af_correlation_3channel(img1, img2, img3, mask=None, intercept0=False, meth
     return params, xdata, ydata, zdata
 
 
-def SaibrCorrect(gfp, af, m, c):
+def saibr_correct(ch1: np.ndarray, ch2: np.ndarray, m: float, c: float) -> np.ndarray:
     """
-    Subtract af from gfp
-    af is first adjusted to m * af + c
+    Subtract ch2 from ch1
+    ch2 is first adjusted to m * ch2 + c
 
-    :param gfp: gfp channel
-    :param af: af channel
-    :param m: calibration parameter
-    :param c: calibration parameter
-    :return: corrected image
+    Args:
+        ch1: numpy array of channel 1
+        ch2: numpy array of channel 2
+        m: m parameter obtained from n2 data
+        c: c parameter obtained from n2 data
+
+    Returns:
+        numpy array of af corrected image
+
     """
 
-    af_inferred = m * af + c
-    signal = gfp - af_inferred
+    af = m * ch2 + c
+    signal = ch1 - af
     return signal
 
 
-def SaibrCorrect3channel(gfp, af, rfp, m1, m2, c):
+def saibr_correct_3channel(ch1: np.ndarray, ch2: np.ndarray, ch3: np.ndarray, m1: float, m2: float,
+                           c: float) -> np.ndarray:
+    """
+    Subtract ch2 and ch3 from ch1
+    ch2 and ch3 are first adjusted to m1 * ch2 + m2 * ch3 + c
+
+    Args:
+        ch1: numpy array of channel 1
+        ch2: numpy array of channel 2
+        ch3: numpy array of channel 3
+        m1: m1 parameter obtained from n2 data
+        m2: m2 parameter obtained from n2 data
+        c: c parameter obtained from n2 data
+
+    Returns:
+        numpy array of af corrected image
+
     """
 
-    :param gfp: gfp channel
-    :param af: af channel
-    :param rfp: rfp channel
-    :param m1: calibration parameter
-    :param m2: calibration parameter
-    :param c: calibration parameter
-    :return: corrected image
-    """
-
-    af_inferred = m1 * af + m2 * rfp + c
-    signal = gfp - af_inferred
+    af = m1 * ch2 + m2 * ch3 + c
+    signal = ch1 - af
     return signal
