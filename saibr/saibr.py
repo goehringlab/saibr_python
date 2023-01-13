@@ -87,12 +87,12 @@ class SaibrCalibrate:
 
         # Perform regression
         if self.rfp is None:
-            self.params, self.af_vals, self.gfp_vals = af_correlation(np.array(self.gfp_filtered),
-                                                                      np.array(self.af_filtered), self.mask,
-                                                                      intercept0=self.intercept0,
-                                                                      method=self.method)
+            self.params, self.af_vals, self.gfp_vals = saibr_correlation(np.array(self.gfp_filtered),
+                                                                         np.array(self.af_filtered), self.mask,
+                                                                         intercept0=self.intercept0,
+                                                                         method=self.method)
         else:
-            self.params, self.af_vals, self.rfp_vals, self.gfp_vals = af_correlation_3channel(
+            self.params, self.af_vals, self.rfp_vals, self.gfp_vals = saibr_correlation_3channel(
                 np.array(self.gfp_filtered), np.array(self.af_filtered), np.array(self.rfp_filtered), self.mask,
                 intercept0=self.intercept0, method=self.method)
 
@@ -274,8 +274,8 @@ class SaibrCalibrate:
         return fig, ax
 
 
-def af_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = None, intercept0: bool = False,
-                   method: str = 'OLS') -> Tuple[list, np.ndarray, np.ndarray]:
+def saibr_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = None, intercept0: bool = False,
+                      method: str = 'OLS') -> Tuple[list, np.ndarray, np.ndarray]:
     """
     Calculates pixel-by-pixel correlation between two channels
     Takes 3d image stacks shape [n, 512, 512]
@@ -347,8 +347,8 @@ def af_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = None, 
     return params, xdata, ydata
 
 
-def af_correlation_3channel(img1: np.ndarray, img2: np.ndarray, img3: np.ndarray, mask: Optional[np.ndarray] = None,
-                            intercept0: bool = False, method: str = 'OLS') -> Tuple[
+def saibr_correlation_3channel(img1: np.ndarray, img2: np.ndarray, img3: np.ndarray, mask: Optional[np.ndarray] = None,
+                               intercept0: bool = False, method: str = 'OLS') -> Tuple[
     list, np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculates pixel-by-pixel correlation between three channels
