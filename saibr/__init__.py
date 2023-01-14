@@ -1,4 +1,4 @@
 from .saibr import *
-from .funcs import *
+from .misc import *
 from .roi import *
 from .legacy import *

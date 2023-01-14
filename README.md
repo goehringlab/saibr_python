@@ -1,3 +1,3 @@
-# saibr_python
+# SAIBR (python)
 
 Python implementation of SAIBR

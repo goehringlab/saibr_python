@@ -6,9 +6,10 @@ import glob
 import scipy.odr as odr
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
-from .funcs import load_image, make_mask
+from .misc import load_image
 from .roi import offset_coordinates
 from typing import Tuple, Optional
+import cv2
 
 
 class SaibrCalibrate:
@@ -471,3 +472,7 @@ def saibr_correct_3channel(ch1: np.ndarray, ch2: np.ndarray, ch3: np.ndarray, m1
     af = m1 * ch2 + m2 * ch3 + c
     signal = ch1 - af
     return signal
+
+
+def make_mask(shape: tuple, roi: np.ndarray) -> np.ndarray:
+    return cv2.fillPoly(np.zeros(shape) * np.nan, [np.int32(roi)], 1)
