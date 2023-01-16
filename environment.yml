@@ -1,0 +1,17 @@
+name: saibr
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - numpy
+  - matplotlib
+  - scipy
+  - scikit-learn
+  - scikit-image
+  - ipywidgets
+  - jupyter
+  - pip
+  - pip:
+      - saibr
+      - opencv-python

@@ -7,29 +7,41 @@ import scipy.odr as odr
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LinearRegression
 from .misc import load_image
-from .roi import offset_coordinates
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 import cv2
 
 
 class SaibrCalibrate:
     def __init__(self,
-                 paths: list,
-                 gfp_regex: str = '*488 SP 535-50*',
-                 af_regex: str = '*488 SP 630-75*',
+                 gfp: Optional[list] = None,
+                 af: Optional[list] = None,
+                 rfp: Optional[list] = None,
+                 roi: Optional[list] = None,
+                 paths: Optional[list] = None,
+                 gfp_regex: Optional[str] = '*488 SP 535-50*',
+                 af_regex: Optional[str] = '*488 SP 630-75*',
                  rfp_regex: Optional[str] = None,
-                 roi_regex: str = '*ROI*',
+                 roi_regex: Optional[str] = '*ROI*',
                  sigma: float = 2.0,
                  intercept0: bool = False,
-                 expand: float = 5.0,
+                 expand: float = 10.0,
                  method: str = 'OLS'):
 
         """
 
-        Convenient class for performing SAIBR calibration
-        Imports data according to paths and regular expressions, blurs images, and performs the regression
+        Class for performing SAIBR calibration
+
+        Two methods of specifying data
+        - input the images directly as a list for each channel along with a list of ROIs
+        - specify a list of paths and regular expressions for image files and ROIs (easier method if files are set up appropriately)
+
+        If rfp channel is not specified, will perform the normal two channel calibration
 
         Args:
+            gfp: list of GFP channel images
+            af: list off AF channel images
+            rfp: list of RFP channel images
+            roi: list of ROIs
             paths: list of paths containing n2 images
             gfp_regex: regular expression found in gfp channel image files
             af_regex: regular expression found in af channel image files
@@ -50,24 +62,30 @@ class SaibrCalibrate:
         self.intercept0 = intercept0
         self.method = method
 
-        # Import images
-        self.gfp = [load_image(sorted(glob.glob(f'{p}/{gfp_regex}'))[0]) for p in paths]
-        self.af = [load_image(sorted(glob.glob(f'{p}/{af_regex}'))[0]) for p in paths]
-        if rfp_regex is not None:
-            self.rfp = [load_image(sorted(glob.glob(f'{p}/{rfp_regex}'))[0]) for p in paths]
-        else:
-            self.rfp = None
+        # Import method 1: if channels are given as lists of images
+        if gfp is not None:
+            self.gfp = gfp
+            self.af = af
+            self.rfp = rfp
+            self.roi = roi
 
-        # Import rois
-        if roi_regex is not None:
-            self.roi = [offset_coordinates(np.loadtxt(sorted(glob.glob(f'{p}/{roi_regex}'))[0]), expand) for p in
-                        paths]
+        # Import method 2: using list of directories and regular expressions
         else:
-            self.roi = None
+            self.gfp = [load_image(sorted(glob.glob(f'{p}/{gfp_regex}'))[0]) for p in paths]
+            self.af = [load_image(sorted(glob.glob(f'{p}/{af_regex}'))[0]) for p in paths]
+            if rfp_regex is not None:
+                self.rfp = [load_image(sorted(glob.glob(f'{p}/{rfp_regex}'))[0]) for p in paths]
+            else:
+                self.rfp = None
+            if roi_regex is not None:
+                self.roi = [offset_coordinates(np.loadtxt(sorted(glob.glob(f'{p}/{roi_regex}'))[0]), expand) for p in
+                            paths]
+            else:
+                self.roi = None
 
         # Create masks
         if self.roi is not None:
-            self.mask = [make_mask([512, 512], r) for r in self.roi]
+            self.mask = [make_mask((512, 512), r) for r in self.roi]
         else:
             self.mask = None
 
@@ -476,3 +494,43 @@ def saibr_correct_3channel(ch1: np.ndarray, ch2: np.ndarray, ch3: np.ndarray, m1
 
 def make_mask(shape: tuple, roi: np.ndarray) -> np.ndarray:
     return cv2.fillPoly(np.zeros(shape) * np.nan, [np.int32(roi)], 1)
+
+
+def offset_coordinates(roi: np.ndarray, offsets: Union[np.ndarray, float], periodic: bool = True) -> np.ndarray:
+    """
+    Reads in coordinates, adjusts according to offsets
+
+    Args:
+        roi:  two column array containing x and y coordinates. e.g. coors = np.loadtxt(filename)
+        offsets: array the same length as coors. Direction?
+        periodic:
+
+    Returns:
+         array in same format as coors containing new coordinates.
+         To save this in a fiji readable format:
+         np.savetxt(filename, newcoors, fmt='%.4f', delimiter='\t')
+
+    """
+
+    # Calculate gradients
+    xcoors = roi[:, 0]
+    ycoors = roi[:, 1]
+    if periodic:
+        ydiffs = np.diff(ycoors, prepend=ycoors[-1])
+        xdiffs = np.diff(xcoors, prepend=xcoors[-1])
+    else:
+        ydiffs = np.diff(ycoors)
+        xdiffs = np.diff(xcoors)
+        ydiffs = np.r_[ydiffs[0], ydiffs]
+        xdiffs = np.r_[xdiffs[0], xdiffs]
+
+    grad = ydiffs / xdiffs
+    tangent_grad = -1 / grad
+
+    # Offset coordinates
+    xchange = ((offsets ** 2) / (1 + tangent_grad ** 2)) ** 0.5
+    ychange = xchange / abs(grad)
+    newxs = xcoors + np.sign(ydiffs) * np.sign(offsets) * xchange
+    newys = ycoors - np.sign(xdiffs) * np.sign(offsets) * ychange
+    newcoors = np.swapaxes(np.vstack([newxs, newys]), 0, 1)
+    return newcoors
