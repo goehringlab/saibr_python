@@ -15,3 +15,4 @@ dependencies:
   - pip:
       - saibr==0.1.1
       - opencv-python==4.2.0.34
+      - matplotlib-polyroi==0.1.1
