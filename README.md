@@ -8,6 +8,7 @@
 Python implementation of SAIBR: a simple, platform independent protocol for spectral autofluorescence correction
 
 [Paper](https://journals.biologists.com/dev/article/149/14/dev200545/276004/SAIBR-a-simple-platform-independent-method-for)
+
 [FIJI plugin](https://github.com/goehringlab/saibr_fiji_plugin)
 
 
