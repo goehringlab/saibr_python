@@ -1,19 +1,30 @@
-# SAIBR (python)
+# SAIBR (python implementation)
 
 [![CC BY 4.0][cc-by-shield]][cc-by]
 [![PyPi version](https://badgen.net/pypi/v/saibr/)](https://pypi.org/project/saibr)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/goehringlab/saibr_python/HEAD?filepath=%2Fscripts/SAIBRdemonstration.ipynb)
 
 
-Python implementation of SAIBR
+Python implementation of SAIBR: a simple, platform independent protocol for spectral autofluorescence correction
 
-## Install instructions
+[Paper](https://journals.biologists.com/dev/article/149/14/dev200545/276004/SAIBR-a-simple-platform-independent-method-for)
+[FIJI plugin](https://github.com/goehringlab/saibr_fiji_plugin)
 
-    pip install saibr
 
 ## Tutorial notebook
 
-To launch the interactive tutorial notebook with binder, click the 'launch binder' button above.
+Please see the [tutorial notebook](scripts/SAIBRdemonstration.ipynb) for instructions on usage.
+
+To run interactively in the cloud with Binder, click here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/goehringlab/saibr_python/HEAD?filepath=%2Fscripts/SAIBRdemonstration.ipynb)
+
+(The notebook may take a few minutes to open)
+
+
+## Install instructions
+
+To explore further and incorporate into your own analysis pipelines, you can install the package using pip:
+
+    pip install saibr
 
 ## License
 
