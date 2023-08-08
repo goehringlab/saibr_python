@@ -1,15 +1,15 @@
 from saibr import *
 import glob
 import numpy as np
+import os
 import pytest
 
 # Load images and ROIs
-cal_basepath = '../data/dataset1/n2'
+cal_basepath = os.path.dirname(os.path.abspath(__file__)) + '/../data/dataset1/n2'
 cal_image_paths = glob.glob(cal_basepath + '/*.tif')
 cal_roi_paths = glob.glob(cal_basepath + '/*.txt')
 cal_images = [load_image(p) for p in cal_image_paths]
 cal_rois = [np.loadtxt(p) for p in cal_roi_paths]
-print(len(cal_rois))
 
 # Extract channels
 cal_images_gfp = [i[:, :, 0] for i in cal_images]
