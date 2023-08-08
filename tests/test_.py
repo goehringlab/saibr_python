@@ -6,8 +6,8 @@ import pytest
 
 # Load images and ROIs
 cal_basepath = os.path.dirname(os.path.abspath(__file__)) + '/../data/dataset1/n2'
-cal_image_paths = glob.glob(cal_basepath + '/*.tif')
-cal_roi_paths = glob.glob(cal_basepath + '/*.txt')
+cal_image_paths = sorted(glob.glob(cal_basepath + '/*.tif'))
+cal_roi_paths = sorted(glob.glob(cal_basepath + '/*.txt'))
 cal_images = [load_image(p) for p in cal_image_paths]
 cal_rois = [np.loadtxt(p) for p in cal_roi_paths]
 
@@ -25,11 +25,11 @@ def test_2():
     # Testing that Calibration gives correct answer
     sc = SaibrCalibrate(gfp=cal_images_gfp, af=cal_images_af, roi=cal_rois, sigma=2)
     sc.run()
-    assert sc.params[0] == pytest.approx(0.9497859698053084)
-    assert sc.params[1] == pytest.approx(-458.79346328784277)
+    assert sc.params[0] == pytest.approx(0.9506699286602773)
+    assert sc.params[1] == pytest.approx(-457.7097277898565)
 
 def test_3():
     # Testing that Correction gives correct answer
-    img = saibr_correct(cal_images_gfp[0], cal_images_af[0], 0.9497859698053084, -458.79346328784277)
-    assert img[0, 0] == pytest.approx(225.81832595690582)
+    img = saibr_correct(cal_images_gfp[0], cal_images_af[0], 0.9506699286602773, -457.7097277898565)
+    assert img[0, 0] == pytest.approx(422.5635553021118)
 
