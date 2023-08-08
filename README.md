@@ -3,6 +3,7 @@
 [![CC BY 4.0][cc-by-shield]][cc-by]
 [![PyPi version](https://badgen.net/pypi/v/saibr/)](https://pypi.org/project/saibr)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/goehringlab/saibr_python/HEAD?filepath=%2Fscripts/SAIBRdemonstration.ipynb)
+[![Documentation Status](https://readthedocs.org/projects/saibr/badge/?version=latest)](https://saibr.readthedocs.io/en/latest/?badge=latest)
 
 
 Python implementation of SAIBR: a simple, platform independent protocol for spectral autofluorescence correction
