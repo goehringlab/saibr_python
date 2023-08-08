@@ -1,0 +1,9 @@
+numpy
+matplotlib
+scipy
+ipywidgets
+scikit-learn
+scikit-image
+jupyter
+opencv-python
+sphinx_rtd_theme==1.0.0

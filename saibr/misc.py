@@ -5,6 +5,7 @@ import glob
 import matplotlib.pyplot as plt
 import copy
 
+__all__ = ['load_image', 'save_img', 'save_img_jpeg', 'direcslist']
 
 def load_image(filename: str) -> np.ndarray:
     """

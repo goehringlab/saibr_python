@@ -11,7 +11,40 @@ from typing import Tuple, Optional, Union
 import cv2
 
 
+__all__ = ['SaibrCalibrate', 'saibr_correlation', 'saibr_correlation_3channel', 'saibr_correct', 'saibr_correct_3channel', 'make_mask', 
+           'offset_coordinates']
+
 class SaibrCalibrate:
+    """
+
+    Class for performing SAIBR calibration
+
+    Two methods of specifying data
+    - input the images directly as a list for each channel along with a list of ROIs
+    - specify a list of paths and regular expressions for image files and ROIs (easier method if files are set up appropriately)
+
+    If rfp channel is not specified, will perform the normal two channel calibration
+
+    Args:
+        gfp: list of GFP channel images
+        af: list off AF channel images
+        rfp: list of RFP channel images
+        roi: list of ROIs
+        paths: list of paths containing n2 images
+        gfp_regex: regular expression found in gfp channel image files
+        af_regex: regular expression found in af channel image files
+        rfp_regex: regular expression found in rfp channel files (optional)
+        roi_regex: regular expression found in ROI files
+        sigma: gaussian blur to apply to images prior to regression
+        intercept0: if True, force intercept of regression to go through zero. Not recommended
+        expand: expand ROIs by this many pixels (useful to include a portion of background)
+        method: fitting method, either 'OLS' for ordinary least squares or 'ODR' for orthogonal distance regression
+
+    To run regression, initialise class and run()
+    SAIBR parameters will then be found at self.params
+
+    """
+
     def __init__(self,
                  gfp: Optional[list] = None,
                  af: Optional[list] = None,
@@ -27,35 +60,7 @@ class SaibrCalibrate:
                  expand: float = 10.0,
                  method: str = 'OLS'):
 
-        """
 
-        Class for performing SAIBR calibration
-
-        Two methods of specifying data
-        - input the images directly as a list for each channel along with a list of ROIs
-        - specify a list of paths and regular expressions for image files and ROIs (easier method if files are set up appropriately)
-
-        If rfp channel is not specified, will perform the normal two channel calibration
-
-        Args:
-            gfp: list of GFP channel images
-            af: list off AF channel images
-            rfp: list of RFP channel images
-            roi: list of ROIs
-            paths: list of paths containing n2 images
-            gfp_regex: regular expression found in gfp channel image files
-            af_regex: regular expression found in af channel image files
-            rfp_regex: regular expression found in rfp channel files (optional)
-            roi_regex: regular expression found in ROI files
-            sigma: gaussian blur to apply to images prior to regression
-            intercept0: if True, force intercept of regression to go through zero. Not recommended
-            expand: expand ROIs by this many pixels (useful to include a portion of background)
-            method: fitting method, either 'OLS' for ordinary least squares or 'ODR' for orthogonal distance regression
-
-        To run regression, initialise class and run()
-        SAIBR parameters will then be found at self.params
-
-        """
 
         # Global parameters
         self.sigma = sigma

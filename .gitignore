@@ -1,2 +1,5 @@
 dist/
 saibr.egg-info/
+docs/build/
+.DS_Store
+__pycache__
