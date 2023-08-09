@@ -1,5 +1,18 @@
+# Bytecode
+__pycache__/
+
+# Distribution/packaging
+build/
 dist/
-saibr.egg-info/
-docs/build/
+*.egg-info/
+
+# Unit tests
+.coverage
+.pytest_cache/
+
+# OS
 .DS_Store
-__pycache__
+
+# IPython notebooks
+.ipynb_checkpoints
+

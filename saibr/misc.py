@@ -5,7 +5,8 @@ import glob
 import matplotlib.pyplot as plt
 import copy
 
-__all__ = ['load_image', 'save_img', 'save_img_jpeg', 'direcslist']
+__all__ = ["load_image", "save_img", "save_img_jpeg", "direcslist"]
+
 
 def load_image(filename: str) -> np.ndarray:
     """
@@ -32,11 +33,16 @@ def save_img(img: np.ndarray, direc: str):
 
     """
 
-    io.imsave(direc, img.astype('float32'))
+    io.imsave(direc, img.astype("float32"))
 
 
-def save_img_jpeg(img: np.ndarray, direc: str, cmin: Optional[float] = None, cmax: Optional[float] = None,
-                  cmap: str = 'gray'):
+def save_img_jpeg(
+    img: np.ndarray,
+    direc: str,
+    cmin: Optional[float] = None,
+    cmax: Optional[float] = None,
+    cmap: str = "gray",
+):
     """
     Saves 2D array as jpeg, according to min and max pixel intensities
 
@@ -52,14 +58,18 @@ def save_img_jpeg(img: np.ndarray, direc: str, cmin: Optional[float] = None, cma
     plt.imsave(direc, img, vmin=cmin, vmax=cmax, cmap=cmap)
 
 
-def _direcslist(dest: str, levels: int = 0, exclude: Optional[tuple] = ('!',),
-                exclusive: Optional[tuple] = None) -> list:
-    lis = sorted(glob.glob(f'{dest}/*/'))
+def _direcslist(
+    dest: str,
+    levels: int = 0,
+    exclude: Optional[tuple] = ("!",),
+    exclusive: Optional[tuple] = None,
+) -> list:
+    lis = sorted(glob.glob(f"{dest}/*/"))
 
     for level in range(levels):
         newlis = []
         for e in lis:
-            newlis.extend(sorted(glob.glob(f'{e}/*/')))
+            newlis.extend(sorted(glob.glob(f"{e}/*/")))
         lis = newlis
         lis = [x[:-1] for x in lis]
 
@@ -85,8 +95,12 @@ def _direcslist(dest: str, levels: int = 0, exclude: Optional[tuple] = ('!',),
     return sorted(lis2)
 
 
-def direcslist(dest: str, levels: int = 0, exclude: Optional[tuple] = ('!',),
-               exclusive: Optional[tuple] = None) -> list:
+def direcslist(
+    dest: str,
+    levels: int = 0,
+    exclude: Optional[tuple] = ("!",),
+    exclusive: Optional[tuple] = None,
+) -> list:
     """
     Gives a list of directories within a given directory (full path)
     Todo: os.walk

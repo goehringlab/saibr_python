@@ -11,8 +11,16 @@ from typing import Tuple, Optional, Union
 import cv2
 
 
-__all__ = ['SaibrCalibrate', 'saibr_correlation', 'saibr_correlation_3channel', 'saibr_correct', 'saibr_correct_3channel', 'make_mask', 
-           'offset_coordinates']
+__all__ = [
+    "SaibrCalibrate",
+    "saibr_correlation",
+    "saibr_correlation_3channel",
+    "saibr_correct",
+    "saibr_correct_3channel",
+    "make_mask",
+    "offset_coordinates",
+]
+
 
 class SaibrCalibrate:
     """
@@ -45,22 +53,22 @@ class SaibrCalibrate:
 
     """
 
-    def __init__(self,
-                 gfp: Optional[list] = None,
-                 af: Optional[list] = None,
-                 rfp: Optional[list] = None,
-                 roi: Optional[list] = None,
-                 paths: Optional[list] = None,
-                 gfp_regex: Optional[str] = '*488 SP 535-50*',
-                 af_regex: Optional[str] = '*488 SP 630-75*',
-                 rfp_regex: Optional[str] = None,
-                 roi_regex: Optional[str] = '*ROI*',
-                 sigma: float = 2.0,
-                 intercept0: bool = False,
-                 expand: float = 10.0,
-                 method: str = 'OLS'):
-
-
+    def __init__(
+        self,
+        gfp: Optional[list] = None,
+        af: Optional[list] = None,
+        rfp: Optional[list] = None,
+        roi: Optional[list] = None,
+        paths: Optional[list] = None,
+        gfp_regex: Optional[str] = "*488 SP 535-50*",
+        af_regex: Optional[str] = "*488 SP 630-75*",
+        rfp_regex: Optional[str] = None,
+        roi_regex: Optional[str] = "*ROI*",
+        sigma: float = 2.0,
+        intercept0: bool = False,
+        expand: float = 10.0,
+        method: str = "OLS",
+    ):
 
         # Global parameters
         self.sigma = sigma
@@ -76,15 +84,25 @@ class SaibrCalibrate:
 
         # Import method 2: using list of directories and regular expressions
         else:
-            self.gfp = [load_image(sorted(glob.glob(f'{p}/{gfp_regex}'))[0]) for p in paths]
-            self.af = [load_image(sorted(glob.glob(f'{p}/{af_regex}'))[0]) for p in paths]
+            self.gfp = [
+                load_image(sorted(glob.glob(f"{p}/{gfp_regex}"))[0]) for p in paths
+            ]
+            self.af = [
+                load_image(sorted(glob.glob(f"{p}/{af_regex}"))[0]) for p in paths
+            ]
             if rfp_regex is not None:
-                self.rfp = [load_image(sorted(glob.glob(f'{p}/{rfp_regex}'))[0]) for p in paths]
+                self.rfp = [
+                    load_image(sorted(glob.glob(f"{p}/{rfp_regex}"))[0]) for p in paths
+                ]
             else:
                 self.rfp = None
             if roi_regex is not None:
-                self.roi = [offset_coordinates(np.loadtxt(sorted(glob.glob(f'{p}/{roi_regex}'))[0]), expand) for p in
-                            paths]
+                self.roi = [
+                    offset_coordinates(
+                        np.loadtxt(sorted(glob.glob(f"{p}/{roi_regex}"))[0]), expand
+                    )
+                    for p in paths
+                ]
             else:
                 self.roi = None
 
@@ -111,20 +129,37 @@ class SaibrCalibrate:
 
         # Perform regression
         if self.rfp is None:
-            self.params, self.af_vals, self.gfp_vals = saibr_correlation(np.array(self.gfp_filtered),
-                                                                         np.array(self.af_filtered), self.mask,
-                                                                         intercept0=self.intercept0,
-                                                                         method=self.method)
+            self.params, self.af_vals, self.gfp_vals = saibr_correlation(
+                np.array(self.gfp_filtered),
+                np.array(self.af_filtered),
+                self.mask,
+                intercept0=self.intercept0,
+                method=self.method,
+            )
         else:
-            self.params, self.af_vals, self.rfp_vals, self.gfp_vals = saibr_correlation_3channel(
-                np.array(self.gfp_filtered), np.array(self.af_filtered), np.array(self.rfp_filtered), self.mask,
-                intercept0=self.intercept0, method=self.method)
+            (
+                self.params,
+                self.af_vals,
+                self.rfp_vals,
+                self.gfp_vals,
+            ) = saibr_correlation_3channel(
+                np.array(self.gfp_filtered),
+                np.array(self.af_filtered),
+                np.array(self.rfp_filtered),
+                self.mask,
+                intercept0=self.intercept0,
+                method=self.method,
+            )
 
         # Calculate ypred
         if self.rfp is None:
             ypred = self.params[0] * self.af_vals + self.params[1]
         else:
-            ypred = self.params[0] * self.af_vals + self.params[1] * self.rfp_vals + self.params[2]
+            ypred = (
+                self.params[0] * self.af_vals
+                + self.params[1] * self.rfp_vals
+                + self.params[2]
+            )
 
         # Calculate R squared
         self.r2 = r2_score(self.gfp_vals, ypred)
@@ -150,29 +185,39 @@ class SaibrCalibrate:
             ax.scatter(c2_vals, c1_vals, s=s)
 
         # Plot line
-        xline = np.linspace(np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99), 20)
+        xline = np.linspace(
+            np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99), 20
+        )
         yline = self.params[0] * xline + self.params[1]
-        ax.plot(xline, yline, c='k', linestyle='--')
+        ax.plot(xline, yline, c="k", linestyle="--")
 
         # Finalise figure
-        ax.set_xlim(np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99))
-        ax.set_ylim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
-        ax.set_xlabel('AF')
-        ax.set_ylabel('GFP')
+        ax.set_xlim(
+            np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99)
+        )
+        ax.set_ylim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
+        ax.set_xlabel("AF")
+        ax.set_ylabel("GFP")
         return fig, ax
 
     def _plot_correlation_3channel(self, s: float = 1.0):
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.add_subplot(111, projection="3d")
 
         # Plot surface
-        xx, yy = np.meshgrid([np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99)],
-                             [np.percentile(self.rfp_vals, 0.01), np.percentile(self.rfp_vals, 99.99)])
+        xx, yy = np.meshgrid(
+            [np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99)],
+            [np.percentile(self.rfp_vals, 0.01), np.percentile(self.rfp_vals, 99.99)],
+        )
         zz = self.params[0] * xx + self.params[1] * yy + self.params[2]
         ax.plot_surface(xx, yy, zz, alpha=0.2)
 
         # Scatter plot
-        for c1, c2, c3, m in zip(self.gfp_filtered, self.af_filtered, self.rfp_filtered, self.mask):
+        for c1, c2, c3, m in zip(
+            self.gfp_filtered, self.af_filtered, self.rfp_filtered, self.mask
+        ):
             c1_masked = c1 * m
             c2_masked = c2 * m
             c3_masked = c3 * m
@@ -183,12 +228,18 @@ class SaibrCalibrate:
             ax.scatter(c2_vals[sample], c3_vals[sample], c1_vals[sample], s=s)
 
         # Finalise figure
-        ax.set_xlim(np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99))
-        ax.set_ylim(np.percentile(self.rfp_vals, 0.01), np.percentile(self.rfp_vals, 99.99))
-        ax.set_zlim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
-        ax.set_xlabel('AF')
-        ax.set_ylabel('RFP')
-        ax.set_zlabel('GFP')
+        ax.set_xlim(
+            np.percentile(self.af_vals, 0.01), np.percentile(self.af_vals, 99.99)
+        )
+        ax.set_ylim(
+            np.percentile(self.rfp_vals, 0.01), np.percentile(self.rfp_vals, 99.99)
+        )
+        ax.set_zlim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
+        ax.set_xlabel("AF")
+        ax.set_ylabel("RFP")
+        ax.set_zlabel("GFP")
         return fig, ax
 
     def plot_prediction(self, s: float = 0.001):
@@ -210,36 +261,53 @@ class SaibrCalibrate:
             ax.scatter(self.params[0] * c2_vals + self.params[1], c1_vals, s=s)
 
         # Plot line
-        ax.plot([0, max(self.gfp_vals)], [0, max(self.gfp_vals)], c='k', linestyle='--')
+        ax.plot([0, max(self.gfp_vals)], [0, max(self.gfp_vals)], c="k", linestyle="--")
 
         # Finalise figure
-        ax.set_xlim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
-        ax.set_ylim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
-        ax.set_xlabel('%.3f * AF + %.1f' % (self.params[0], self.params[1]))
-        ax.set_ylabel('GFP')
+        ax.set_xlim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
+        ax.set_ylim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
+        ax.set_xlabel("%.3f * AF + %.1f" % (self.params[0], self.params[1]))
+        ax.set_ylabel("GFP")
         return fig, ax
 
     def _plot_prediction_3channel(self, s: float = 0.001):
         fig, ax = plt.subplots()
 
         # Scatter plot
-        for c1, c2, c3, m in zip(self.gfp_filtered, self.af_filtered, self.rfp_filtered, self.mask):
+        for c1, c2, c3, m in zip(
+            self.gfp_filtered, self.af_filtered, self.rfp_filtered, self.mask
+        ):
             c1_masked = c1 * m
             c2_masked = c2 * m
             c3_masked = c3 * m
             c1_vals = c1_masked[~np.isnan(c1_masked)]
             c2_vals = c2_masked[~np.isnan(c2_masked)]
             c3_vals = c3_masked[~np.isnan(c3_masked)]
-            ax.scatter(self.params[0] * c2_vals + self.params[1] * c3_vals + self.params[2], c1_vals, s=s)
+            ax.scatter(
+                self.params[0] * c2_vals + self.params[1] * c3_vals + self.params[2],
+                c1_vals,
+                s=s,
+            )
 
         # Plot line
-        ax.plot([0, max(self.gfp_vals)], [0, max(self.gfp_vals)], c='k', linestyle='--')
+        ax.plot([0, max(self.gfp_vals)], [0, max(self.gfp_vals)], c="k", linestyle="--")
 
         # Finalise figure
-        ax.set_xlim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
-        ax.set_ylim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
-        ax.set_xlabel('%.3f * AF + %.3f * RFP + %.1f' % (self.params[0], self.params[1], self.params[2]))
-        ax.set_ylabel('GFP')
+        ax.set_xlim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
+        ax.set_ylim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
+        ax.set_xlabel(
+            "%.3f * AF + %.3f * RFP + %.1f"
+            % (self.params[0], self.params[1], self.params[2])
+        )
+        ax.set_ylabel("GFP")
         return fig, ax
 
     def plot_residuals(self, s: float = 0.001):
@@ -264,19 +332,23 @@ class SaibrCalibrate:
             ax.scatter(x, resids, s=s)
 
         # Plot line
-        ax.axhline(0, linestyle='--', c='k')
+        ax.axhline(0, linestyle="--", c="k")
 
         # Finalise figure
-        ax.set_xlabel('%.3f * AF + %.1f' % (self.params[0], self.params[1]))
-        ax.set_ylabel('Residuals')
-        ax.set_xlim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
+        ax.set_xlabel("%.3f * AF + %.1f" % (self.params[0], self.params[1]))
+        ax.set_ylabel("Residuals")
+        ax.set_xlim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
         return fig, ax
 
     def _plot_residuals_3channel(self, s: float = 0.001):
         fig, ax = plt.subplots()
 
         # Scatter plot
-        for c1, c2, c3, m in zip(self.gfp_filtered, self.af_filtered, self.rfp_filtered, self.mask):
+        for c1, c2, c3, m in zip(
+            self.gfp_filtered, self.af_filtered, self.rfp_filtered, self.mask
+        ):
             c1_masked = c1 * m
             c2_masked = c2 * m
             c3_masked = c3 * m
@@ -289,17 +361,27 @@ class SaibrCalibrate:
             ax.scatter(x, resids, s=s)
 
         # Plot line
-        ax.axhline(0, linestyle='--', c='k')
+        ax.axhline(0, linestyle="--", c="k")
 
         # Finalise plot
-        ax.set_xlabel('%.3f * AF + %.3f * RFP + %.1f' % (self.params[0], self.params[1], self.params[2]))
-        ax.set_ylabel('Residuals')
-        ax.set_xlim(np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99))
+        ax.set_xlabel(
+            "%.3f * AF + %.3f * RFP + %.1f"
+            % (self.params[0], self.params[1], self.params[2])
+        )
+        ax.set_ylabel("Residuals")
+        ax.set_xlim(
+            np.percentile(self.gfp_vals, 0.01), np.percentile(self.gfp_vals, 99.99)
+        )
         return fig, ax
 
 
-def saibr_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = None, intercept0: bool = False,
-                      method: str = 'OLS') -> Tuple[list, np.ndarray, np.ndarray]:
+def saibr_correlation(
+    img1: np.ndarray,
+    img2: np.ndarray,
+    mask: np.ndarray = None,
+    intercept0: bool = False,
+    method: str = "OLS",
+) -> Tuple[list, np.ndarray, np.ndarray]:
     """
     Calculates pixel-by-pixel correlation between two channels
     Takes 3d image stacks shape [n, 512, 512]
@@ -340,7 +422,7 @@ def saibr_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = Non
     ydata = ydata[~np.isnan(ydata)]
 
     # Ordinary least squares regression
-    if method == 'OLS':
+    if method == "OLS":
         if not intercept0:
             lr = LinearRegression(fit_intercept=True)
             lr.fit(xdata[:, np.newaxis], ydata)
@@ -352,7 +434,7 @@ def saibr_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = Non
             params = [lr.coef_[0], 0]
 
     # Orthogonal distance regression
-    elif method == 'ODR':
+    elif method == "ODR":
         if not intercept0:
             odr_mod = odr.Model(lambda b, x: b[0] * x + b[1])
             odr_data = odr.Data(xdata, ydata)
@@ -366,14 +448,19 @@ def saibr_correlation(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray = Non
             output = odr_odr.run()
             params = [output.beta[0], 0]
     else:
-        raise Exception('Method must be OLS or ODR')
+        raise Exception("Method must be OLS or ODR")
 
     return params, xdata, ydata
 
 
-def saibr_correlation_3channel(img1: np.ndarray, img2: np.ndarray, img3: np.ndarray, mask: Optional[np.ndarray] = None,
-                               intercept0: bool = False, method: str = 'OLS') -> Tuple[
-    list, np.ndarray, np.ndarray, np.ndarray]:
+def saibr_correlation_3channel(
+    img1: np.ndarray,
+    img2: np.ndarray,
+    img3: np.ndarray,
+    mask: Optional[np.ndarray] = None,
+    intercept0: bool = False,
+    method: str = "OLS",
+) -> Tuple[list, np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculates pixel-by-pixel correlation between three channels
     Takes 3d image stacks shape [n, 512, 512]
@@ -421,7 +508,7 @@ def saibr_correlation_3channel(img1: np.ndarray, img2: np.ndarray, img3: np.ndar
     zdata = zdata[~np.isnan(zdata)]
 
     # Ordinary least squares regression
-    if method == 'OLS':
+    if method == "OLS":
         if not intercept0:
             lr = LinearRegression(fit_intercept=True)
             lr.fit(np.vstack((xdata, ydata)).T, zdata)
@@ -433,7 +520,7 @@ def saibr_correlation_3channel(img1: np.ndarray, img2: np.ndarray, img3: np.ndar
             params = [lr.coef_[0], lr.coef_[1], 0]
 
     # Orthogonal distance regression
-    elif method == 'ODR':
+    elif method == "ODR":
         if not intercept0:
             odr_mod = odr.Model(lambda b, x: b[0] * x[0] + b[1] * x[1] + b[2])
             odr_data = odr.Data(np.c_[xdata, ydata].T, zdata)
@@ -447,7 +534,7 @@ def saibr_correlation_3channel(img1: np.ndarray, img2: np.ndarray, img3: np.ndar
             output = odr_odr.run()
             params = [output.beta[0], output.beta[1], 0]
     else:
-        raise Exception('Method must be OLS or ODR')
+        raise Exception("Method must be OLS or ODR")
 
     return params, xdata, ydata, zdata
 
@@ -473,8 +560,9 @@ def saibr_correct(ch1: np.ndarray, ch2: np.ndarray, m: float, c: float) -> np.nd
     return signal
 
 
-def saibr_correct_3channel(ch1: np.ndarray, ch2: np.ndarray, ch3: np.ndarray, m1: float, m2: float,
-                           c: float) -> np.ndarray:
+def saibr_correct_3channel(
+    ch1: np.ndarray, ch2: np.ndarray, ch3: np.ndarray, m1: float, m2: float, c: float
+) -> np.ndarray:
     """
     Subtract ch2 and ch3 from ch1
     ch2 and ch3 are first adjusted to m1 * ch2 + m2 * ch3 + c
@@ -501,7 +589,9 @@ def make_mask(shape: tuple, roi: np.ndarray) -> np.ndarray:
     return cv2.fillPoly(np.zeros(shape) * np.nan, [np.int32(roi)], 1)
 
 
-def offset_coordinates(roi: np.ndarray, offsets: Union[np.ndarray, float], periodic: bool = True) -> np.ndarray:
+def offset_coordinates(
+    roi: np.ndarray, offsets: Union[np.ndarray, float], periodic: bool = True
+) -> np.ndarray:
     """
     Reads in coordinates, adjusts according to offsets
 
@@ -533,7 +623,7 @@ def offset_coordinates(roi: np.ndarray, offsets: Union[np.ndarray, float], perio
     tangent_grad = -1 / grad
 
     # Offset coordinates
-    xchange = ((offsets ** 2) / (1 + tangent_grad ** 2)) ** 0.5
+    xchange = ((offsets**2) / (1 + tangent_grad**2)) ** 0.5
     ychange = xchange / abs(grad)
     newxs = xcoors + np.sign(ydiffs) * np.sign(offsets) * xchange
     newys = ycoors - np.sign(xdiffs) * np.sign(offsets) * ychange

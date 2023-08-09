@@ -1,6 +1,18 @@
-from saibr import SaibrCalibrate, saibr_correlation, saibr_correlation_3channel, saibr_correct, saibr_correct_3channel
+from saibr import (
+    SaibrCalibrate,
+    saibr_correlation,
+    saibr_correlation_3channel,
+    saibr_correct,
+    saibr_correct_3channel,
+)
 
-__all__ = ['AfCorrelation', 'af_correlation', 'af_correlation_3channel', 'af_subtraction', 'af_subtraction_3channel']
+__all__ = [
+    "AfCorrelation",
+    "af_correlation",
+    "af_correlation_3channel",
+    "af_subtraction",
+    "af_subtraction_3channel",
+]
 
 AfCorrelation = SaibrCalibrate
 af_correlation = saibr_correlation

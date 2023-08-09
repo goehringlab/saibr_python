@@ -1,6 +1,9 @@
 # SAIBR (python implementation)
 
 [![CC BY 4.0][cc-by-shield]][cc-by]
+[![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Tests](https://github.com/goehringlab/saibr_python/actions/workflows/test.yaml/badge.svg)](https://github.com/goehringlab/saibr_python/actions/workflows/test.yaml)
 [![PyPi version](https://badgen.net/pypi/v/saibr/)](https://pypi.org/project/saibr)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/goehringlab/saibr_python/HEAD?filepath=%2Fscripts/SAIBRdemonstration.ipynb)
 [![Documentation Status](https://readthedocs.org/projects/saibr/badge/?version=latest)](https://saibr.readthedocs.io/en/latest/?badge=latest)
