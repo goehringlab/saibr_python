@@ -31,6 +31,13 @@ To explore further and incorporate into your own analysis pipelines, you can ins
 
     pip install saibr
 
+
+## Citation
+
+If you use this method as part of a publication, please cite the following reference: 
+
+Nelio T. L. Rodrigues, Tom Bland, Joana Borrego-Pinto, KangBo Ng, Nisha Hirani, Ying Gu, Sherman Foo, Nathan W. Goehring; SAIBR: a simple, platform-independent method for spectral autofluorescence correction. Development 15 July 2022; 149 (14): dev200545. doi: https://doi.org/10.1242/dev.200545
+
 ## License
 
 This work is licensed under a
