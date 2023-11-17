@@ -18,18 +18,22 @@ Python implementation of SAIBR: a simple, platform independent protocol for spec
 
 ## Tutorial notebook
 
-Please see the [tutorial notebook](https://nbviewer.org/github/goehringlab/saibr_python/blob/master/scripts/SAIBRdemonstration.ipynb) for instructions on usage.
+As a first step, I would recommend checking out the [tutorial notebook](https://nbviewer.org/github/goehringlab/saibr_python/blob/master/scripts/SAIBRdemonstration.ipynb). This can be run in the cloud using Binder (please note that it may take several minutes to open the notebook):
 
-To run interactively in the cloud with Binder, click here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/goehringlab/saibr_python/HEAD?filepath=%2Fscripts/SAIBRdemonstration.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/goehringlab/saibr_python/HEAD?filepath=%2Fscripts/SAIBRdemonstration.ipynb)
 
-(The notebook may take a few minutes to open)
+To run locally, download the code and install the relevant requirements (requirements.txt) in a virtual environment.
 
 
 ## Install instructions
 
-To explore further and incorporate into your own analysis pipelines, you can install the package using pip:
+To explore further and incorporate into your own analysis pipelines, you can install the package from PyPI using pip:
 
     pip install saibr
+
+If you want to make changes to the code you can download/clone this folder, navigate to it, and run:
+
+    pip install -e .[dev]
 
 
 ## Citation

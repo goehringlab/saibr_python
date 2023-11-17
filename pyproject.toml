@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools"]
+
+[tool.setuptools]
+packages = ["saibr"]
+
+[project]
+name = "saibr"
+description = "Python implementation of SAIBR: a tool for performing spectral autofluorescence correction on biological images"
+readme = "README.md"
+version = "0.1.6"
+license = {file = "LICENSE"}
+authors = [
+    { name = "Tom Bland", email = "tom_bland@hotmail.co.uk" },
+]
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "scipy",
+    "ipywidgets",
+    "scikit-learn",
+    "scikit-image",
+    "jupyter",
+    "opencv-python",
+]
+
+[project.urls]
+Documentation = "https://saibr.readthedocs.io/en/latest/"
+Source = "https://github.com/goehringlab/saibr_python"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pre-commit",
+    "black",
+    "pip-tools",
+    "pytest-cov",
+]
+
+doc = [
+    "sphinx_rtd_theme==1.0.0",
+]
+
